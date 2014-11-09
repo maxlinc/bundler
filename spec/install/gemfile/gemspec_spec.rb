@@ -110,6 +110,24 @@ describe "bundle install from an existing gemspec" do
     should_be_installed "bar-dev 1.0.0", :groups => :dev
   end
 
+  it "should allow a custom group for dependencies" do
+    build_lib("foo", :path => tmp.join("foo")) do |s|
+      s.write("foo2.gemspec", "")
+      s.add_dependency "bar", "=1.0.0"
+      s.add_development_dependency "bar-dev", '=1.0.0'
+    end
+
+    install_gemfile(<<-G, :expect_err => true)
+      source "file://#{gem_repo2}"
+      gemspec :path => '#{tmp.join("foo")}', :name => 'foo', :group => :plugins, :development_group => :dev
+    G
+
+    should_be_installed "bar 1.0.0", :groups => :plugins
+    should_not_be_installed "bar 1.0.0", :groups => :default
+    should_not_be_installed "bar-dev 1.0.0", :groups => :development
+    should_be_installed "bar-dev 1.0.0", :groups => :dev
+  end
+
   it "should match a lockfile even if the gemspec defines development dependencies" do
     build_lib("foo", :path => tmp.join("foo")) do |s|
       s.write("Gemfile", "source 'file://#{gem_repo1}'\ngemspec")
