@@ -40,10 +40,13 @@ module Bundler
         " and Bundler cannot continue."
     end
 
-    def gemspec(opts = nil)
-      path              = opts && opts[:path] || '.'
-      name              = opts && opts[:name] || '{,*}'
-      development_group = opts && opts[:development_group] || :development
+    def gemspec(opts = {})
+      opts = normalize_hash(opts)
+      path = opts['path'] ||= '.'
+      opts['name'] ||= '{,*}'
+      opts['development_group'] ||= :development
+      name = opts.delete('name')
+      development_group = opts.delete('development_group')
       expanded_path     = File.expand_path(path, Bundler.default_gemfile.dirname)
 
       gemspecs = Dir[File.join(expanded_path, "#{name}.gemspec")]
@@ -52,7 +55,7 @@ module Bundler
       when 1
         spec = Bundler.load_gemspec(gemspecs.first)
         raise InvalidOption, "There was an error loading the gemspec at #{gemspecs.first}." unless spec
-        gem spec.name, :path => path
+        gem spec.name, opts
         group(development_group) do
           spec.development_dependencies.each do |dep|
             gem dep.name, *(dep.requirement.as_list + [:type => :development])
